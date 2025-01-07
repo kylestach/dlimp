@@ -61,7 +61,7 @@ class DLataset(tf.data.Dataset):
         """Applies some default options for performance."""
         options = tf.data.Options()
         options.autotune.enabled = True
-        options.deterministic = False
+        options.deterministic = True
         options.experimental_optimization.apply_default_optimizations = True
         options.experimental_optimization.map_fusion = True
         options.experimental_optimization.map_and_filter_fusion = True
@@ -83,7 +83,7 @@ class DLataset(tf.data.Dataset):
     def from_tfrecords(
         dir_or_paths: Union[str, Sequence[str]],
         shuffle: bool = True,
-        num_parallel_reads: int = tf.data.AUTOTUNE,
+        num_parallel_reads: int = 0
     ) -> "DLataset":
         """Creates a DLataset from tfrecord files. The type spec of the dataset is inferred from the first file. The
         only constraint is that each example must be a trajectory where each entry is either a scalar, a tensor of shape
@@ -96,6 +96,8 @@ class DLataset(tf.data.Dataset):
             num_parallel_reads (int, optional): The number of tfrecord files to read in parallel. Defaults to AUTOTUNE. This
                 can use an excessive amount of memory if reading from cloud storage; decrease if necessary.
         """
+        assert not shuffle, "Deterministic dataset enforced"
+        assert num_parallel_reads == 0, "Deterministic dataset enforced"
         if isinstance(dir_or_paths, str):
             paths = tf.io.gfile.glob(tf.io.gfile.join(dir_or_paths, "*.tfrecord"))
         else:
@@ -128,8 +130,8 @@ class DLataset(tf.data.Dataset):
     def from_rlds(
         builder: DatasetBuilder,
         split: str = "train",
-        shuffle: bool = True,
-        num_parallel_reads: int = tf.data.AUTOTUNE,
+        shuffle: bool = False,
+        num_parallel_reads: int = 0,
     ) -> "DLataset":
         """Creates a DLataset from the RLDS format (which is a special case of the TFDS format).
 
@@ -141,6 +143,9 @@ class DLataset(tf.data.Dataset):
             num_parallel_reads (int, optional): The number of tfrecord files to read in parallel. Defaults to AUTOTUNE. This
                 can use an excessive amount of memory if reading from cloud storage; decrease if necessary.
         """
+        assert not shuffle, "Deterministic dataset enforced"
+        assert num_parallel_reads == 0, "Deterministic dataset enforced"
+
         dataset = _wrap(builder.as_dataset, False)(
             split=split,
             shuffle_files=shuffle,
